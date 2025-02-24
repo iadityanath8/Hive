@@ -1,10 +1,12 @@
-// #include "hive.hpp"
-#include <string>
+#include "hive.hpp"
 
-using namespace std;
+
 
 int main() {
-    string a = "q";
-    string b = "123456789101112";
+    LinkedList a = {1,2,3};
+
+    for (int i : a) {
+        print(i);
+    }
     return 0;
 }

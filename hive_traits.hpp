@@ -27,6 +27,9 @@ struct has_repr<T, decltype((void)make_rvalue<T>::instance().repr(), void())>
 /** specialized concepts soon we will try to add more traits in here normally like this in here */
 class String;
 using Buffer = char*;
+
+
+
 template<typename T>
 concept Printable = requires(T t){
       { make_rvalue<T>::instance().repr() } -> std::same_as<String>;
@@ -40,4 +43,11 @@ concept RawPrintable = requires(T t) {
 template <typename T>
 concept BufferPrinatable = requires(T t) {
     { make_rvalue<T>::instance().repr() } -> std::same_as<Buffer>;
+};
+
+template <typename T>
+concept Comparable = requires(T a, T b) {
+    { a > b } -> std::same_as<bool>;
+    { a < b } -> std::same_as<bool>;
+    { a ==b } -> std::same_as<bool>;
 };

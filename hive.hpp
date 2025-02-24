@@ -2,22 +2,30 @@
  *
  * Hive is a minimilistic small and fast c++ replaccement to standard library like iostream and containers such as
  * STL and it uses c++ standard library with a pinch of salt very little only for the features like initializer_list
- * and move semantics etc it does not uses any kind of data structure even also it does not even uses allocation
+ * and move semantics etc it does not uses any kind of data structure even also it does not even uses allocation of the standard
+ * library as it uses some c++ standard library such as the type_traits and new although they can also be implemented by hive 
+ * 
+ * 
+ * It has some python like features like python like print and repr function and rust like format function although not 
+ * a macro but a function so 
+ * 
  *
  *
  *
  *
  */
+
 #pragma once
-#include <stdio.h>
+#include <cstdio>
 #include <initializer_list>
 #include <cstring>
 #include <cstdint>
 #include "list.hpp"
 #include "hive_traits.hpp"
 #include <utility>
+#include <new>
 
-#define EXPERIMENTAL 0
+#define EXPERIMENTAL 1
 
 #define INIT_LIST_CAPACITY 121
 
@@ -36,29 +44,30 @@ public:
     String &operator=(const String &other);
     String &operator=(String &&other);
     String &operator+=(const char *ch_);
-    String &operator+=(String &&other);
     char &operator[](index_type idx);
     const char &operator[](index_type idx) const;
     void push(char ch_);
     char pop();
     bool operator==(const String &other);
     char *data();
-    size_t size() { return m_data.size(); }
+    size_t size() { if (is_sso) {return sso_index;} else { return m_data.size(); } }
 
-    List<char>::Iterator begin()
+    List<char>::iterator begin()
     {
-        return List<char>::Iterator(m_data.data());
+        return List<char>::iterator(m_data.data());
     }
 
-    List<char>::Iterator end()
+    List<char>::iterator end()
     {
-        return List<char>::Iterator(m_data.data() + m_data.size());
+        return List<char>::iterator(m_data.data() + m_data.size());
     }
-
-    char *buffer() { return m_data.data(); }
 
 private:
+    static constexpr size_t SSO_SIZE = 23;
+    char sso_buffer[SSO_SIZE+1] = {0};
     List<char> m_data{};
+    bool is_sso {true};
+    index_type sso_index ;
 };
 /** erroe and halt */
 
@@ -116,24 +125,29 @@ void panic(const char *msg__)
     abort();
 }
 /** lots of bug fixing in here ok  */
-void hive_print1(String &v)
+void print_up_to(const char *str, int num_chars) {
+    printf("%.*s", (int)num_chars, str); 
+}
+
+void hive_print1(String& v)
 {
-    hive_print1(v.data());
+    // hive_print1(v.data());
+    print_up_to(v.data(),v.size());
 }
 
 // soon we will try to introduce the concepts so that we can use the specially compile time messages in here
 template <Printable T>
 void hive_print1(const T &__v)
 {
-
-    hive_print1(__v.repr());
+    auto b = __v.repr();
+    hive_print1(b);
 }
 
-template <RawPrintable T>
-void hive_print1(const T &__v)
-{
-    printf("%s", __v.repr());
-}
+// template <RawPrintable T>
+// void hive_print1(const T &__v)
+// {
+//     printf("%s", __v.repr());
+// }
 
 /** hive format funtion use specifiacally just like f string of python but a little lower level */
 
@@ -221,13 +235,8 @@ String to_string(size_t _d)
 template <typename... Args>
 String format(Args... args)
 {
-    String fa[] = {to_string(args)...}; // very very unsafe bro
-
     String result;
-    for (auto s : fa)
-    {
-        result += s.buffer(); // fuck very inefficient shit
-    }
+    ((result += to_string(args).data()), ...); // Fold expression for efficient concatenation
     return result;
 }
 
@@ -496,50 +505,92 @@ List<T> &List<T>::operator=(List<T> &&other)
     return *this;
 }
 
-/** String implementation */
-String::String() : m_data() {}
+/** -------------------------------------------------------------------------------------String implementation -------------------------------------------------------------------------------*/
+String::String() : m_data(), is_sso(true),sso_index(0) {}
 
 String::String(int _s)
 {
-    m_data.reserve(_s);
+    if (_s >= SSO_SIZE) {
+        m_data.reserve(_s);
+        is_sso = false;
+    }
 }
 
-String::String(const char *ch_)
+String::String(const char *ch_): sso_index(0),is_sso(true)
 {
     size_t len = strlen(ch_);
-
-    m_data.reserve(len + 1);
-    for (size_t i = 0; i < len; i++)
-    {
-        m_data.push(ch_[i]);
+    if (is_sso and len < SSO_SIZE) {    
+        strncpy(sso_buffer,ch_,len);
+        sso_index = len;
+        sso_buffer[len] = '\0';
+    }else {
+        is_sso = false;
+        m_data.reserve(len + 1);
+        for (size_t i = 0; i < len; i++)
+        {
+            m_data.push(ch_[i]);
+        }
     }
 }
 
 String::String(const String &other)
 {
-    m_data = other.m_data;
+    // check it ???
+    if (is_sso and other.is_sso) {
+        strncpy(sso_buffer,other.sso_buffer,SSO_SIZE +1);
+        sso_index = other.sso_index;
+    }else {
+        m_data = other.m_data;
+    }
 }
 
-String::String(String &&other)
+String::String(String &&other) noexcept
 {
-    m_data = std::move(other.m_data);
+    // check SSO 
+    if (other.is_sso) {
+        strncpy(sso_buffer, other.sso_buffer,SSO_SIZE + 1);
+        sso_index = other.sso_index;
+        other.sso_index = 0;
+        other.sso_buffer[0] = '\0';
+        other.is_sso = true;
+    }else {        
+        m_data = std::move(other.m_data);
+    }   
 }
 
 String::~String()
 {
-    m_data.~List();
+    if (!is_sso)
+        m_data.~List();
 }
 
 void String::push(char ch_)
-{
-    m_data.push(ch_);
+{   
+    if (is_sso and size() + 1 >= SSO_SIZE) {
+        for (int i =0;i < sso_index;i++) {
+            m_data.push(sso_buffer[i]);
+        }
+        m_data.push(ch_);
+        is_sso = false;
+    }else if(is_sso) {
+        sso_buffer[sso_index] = ch_;
+        sso_index++;
+        sso_buffer[sso_index] = '\0';
+    }else {
+        m_data.push(ch_);
+    }
 }
 
 char String::pop()
 {
-    if (m_data.size() == 0)
+    if (m_data.size() == 0 or sso_index == 0)
     {
         panic("Cannot pop out from the String");
+    }
+    if (is_sso) {
+        auto t = sso_buffer[sso_index];
+        sso_index--;
+        return t;
     }
     auto t = m_data.pop();
     return t;
@@ -547,29 +598,64 @@ char String::pop()
 
 char *String::data()
 {
+    if (is_sso) return sso_buffer;
     return m_data.data();
 }
 
 bool String::operator==(const String &other)
 {
+    if (sso_index != other.sso_index) return false;
+    if (is_sso) return strncmp(sso_buffer,other.sso_buffer,sso_index) == 0;
     return m_data == other.m_data;
 }
 
 char &String::operator[](index_type index)
 {
+    if (is_sso) {
+        auto cmp = (index < SSO_SIZE and (-index + 1) > sso_index +1);
+        if (!cmp) {
+            panic("Index out of bound for the String");
+        }
+        auto in = index < 0 ? sso_index - index: index;
+        return sso_buffer[in];
+    }
     return m_data[index];
 }
 
 const char &String::operator[](index_type index) const
 {
+    if (is_sso) {
+        auto cmp = (index < SSO_SIZE and (-index + 1) > sso_index +1);
+        if (!cmp) {
+            panic("Index out of bound for the String");
+        }
+        auto in = index < 0 ? sso_index - index: index;
+        return sso_buffer[in];
+    }
     return m_data[index];
 }
 
 String &String::operator=(String &&other)
-{
+{   
     if (this == &other)
         return *this;
-    m_data = std::move(other.m_data);
+    if (is_sso and other.is_sso) {
+        strncpy(sso_buffer, other.sso_buffer,SSO_SIZE + 1);
+        sso_index = other.sso_index;
+        other.sso_index = 0;
+        other.sso_buffer[0] = '\0';
+        other.is_sso = true;
+        return *this;
+    }
+    if (is_sso) {
+        m_data = std::move(other.m_data);
+        is_sso = false;
+    }else {
+        m_data = std::move(other.m_data);
+    }
+    other.is_sso = true;
+    other.sso_buffer[0] = '\0';
+    other.sso_index = 0;
     return *this;
 }
 
@@ -577,14 +663,22 @@ String &String::operator=(const String &other)
 {
     if (this == &other)
         return *this;
-    m_data = other.m_data;
+    if (is_sso && other.is_sso) {
+        strncpy(sso_buffer,other.sso_buffer,SSO_SIZE);
+        sso_index = other.sso_index;
+    }else if (is_sso) {
+        is_sso = false;
+        m_data = other.m_data;
+    }else {
+        m_data = other.m_data;
+    }
     return *this;
 }
 
 String &String::operator+=(const char *ch_)
 {
     index_type len = strlen(ch_);
-
+    
     for (index_type i = 0; i < len; i++)
     {
         push(ch_[i]);
@@ -592,15 +686,217 @@ String &String::operator+=(const char *ch_)
     return *this;
 }
 
-template <typename T, typename U>
-struct Pair
-{
-    T first;
-    U second;
-    Pair(T &&a, U &&b) : first(a), second(b) {}
 
-    String repr() const
-    {
-        return format("a");
+/**  LinkedList implementation  **/
+template <typename T>
+LinkedList<T>::LinkedList(): head(nullptr), tail(nullptr), sz(0) {}
+
+template <typename T>
+LinkedList<T>::~LinkedList() {}
+
+template<typename T>
+LinkedList<T>::LinkedList(std::initializer_list<T> init) { 
+    for (auto i : init) {
+        push(i);
+    }    
+}
+
+template <typename T>
+auto LinkedList<T>::push(T item) -> void {
+    void* mem = malloc(sizeof(Node));  
+    if (!mem)  {panic("Memory allocation failed");}                 
+
+    Node* newnode = new (mem) Node(item); 
+
+    if (!head && !tail) {
+        head = newnode;
+        tail = newnode;
+    } else {
+        tail->next = newnode;
+        newnode->prev = tail;
+        tail = newnode;
+    }
+    sz++;
+}
+
+template <typename T> 
+auto LinkedList<T>::pop() -> T {
+    if (head == nullptr and tail == nullptr) {
+        panic("Pop from an empty LinkedList");
+    }
+
+    tail = tail->prev;
+    auto temp = tail->next;
+    auto d = temp->data;
+    tail->next = nullptr;
+    free(temp);
+    return d;
+}
+
+template <typename T>
+auto LinkedList<T>::remove(size_t pos) -> void {
+    if (sz == 0) {
+        panic("ERROR: cannot pop from an Empty Linked List");
+    }    
+    if (pos == sz) {
+        panic("ERROR: cannot pop Invalid position");
+    } 
+
+    if (pos == 0) {
+        auto del = head;
+        head = head->next;
+        head->prev = nullptr;
+        free(del);
+    }
+    
+    else if (pos == sz - 1){
+        print("Moew");
+        auto del = tail;
+        tail = tail->prev;
+        tail->next = nullptr;
+        free(del);
+    } 
+    // 1 - 2 - 3 - 4
+    else {   
+        auto temp = head;
+        for (int i =0;i < pos - 1;i++) {
+            temp = temp->next;
+        }
+        auto del = temp->next;
+        auto after = temp->next->next;
+        temp->next = after;
+        after->prev = temp;
+        free(del);
+    }
+    
+}
+
+template<typename T>
+auto LinkedList<T>::insert(T m_d, size_t idx) -> void {
+    if (idx >= sz + 1) {
+        panic("ERROR: Cannot insert data this far");
+    }
+    if (idx == 0) {
+        void* mem = malloc(sizeof(Node));
+        auto newnode = new (mem) Node(m_d);
+        newnode->next = head;
+        head->prev = newnode;
+        head = newnode;
+    }
+    else if (idx == sz) {
+        push(m_d);
+        // 1 - 2 - 3 - 4         
+    }else {
+        auto temp = head;
+        void* mem = malloc(sizeof(Node));
+        for (size_t i = 0;i < idx - 1;i++) {
+            temp = temp->next;
+        }
+        auto newnode = new (mem) Node(m_d);
+        auto after = temp->next;
+        temp->next = newnode;
+        newnode->prev = temp;
+        newnode->next = after;
+        after->prev = newnode;
+    }
+}
+
+template <typename T> 
+auto LinkedList<T>::back() -> T {
+    if (tail == nullptr) {panic("Error: LinkedList empty cannot pop from the linkedlist");}
+    return tail->data;
+}
+
+template <typename T>
+auto LinkedList<T>::front() -> T {
+    if (head == nullptr) {panic("Error: LinkedList is empty cannot pop from the front");}
+    return head->data;
+}
+
+template<typename T>
+auto LinkedList<T>::print__() {
+    auto temp = head;
+    while (temp != nullptr) {
+        print(temp->data);
+        temp = temp->next;
+    }
+}
+
+
+/** Support for iterators in here */
+
+struct HIVE__CXX_Range_iterator {
+    int s; 
+    int st;
+    int ed;
+    HIVE__CXX_Range_iterator(int s_, int st_, int ed_):s(s_),st(st_),ed(ed_) {}
+    
+    HIVE__CXX_Range_iterator& operator++() {
+        s += st;
+        return *this;
+    }
+    
+    bool operator!=(const HIVE__CXX_Range_iterator& other) const {
+        return (st > 0) ? (s < other.s) : (s > other.s);
+    }
+    int operator*() const {return s;}    
+};
+
+struct Range {
+    int current;
+    int step;
+    int en;
+    Range(int _C):current(0), step(1), en(_C){}
+    Range(int s, int se,int ee): current(s),step(se), en(ee) {}
+
+    HIVE__CXX_Range_iterator begin() {
+        return HIVE__CXX_Range_iterator(current,step,en);
+    }
+    
+    HIVE__CXX_Range_iterator end() {
+        return HIVE__CXX_Range_iterator(en,step,en);
+    }
+};          
+
+// soon implementable in here
+/** Iterable */ 
+
+
+template <typename T>
+struct HIVE__CXX_Enumerate_iterator {
+    using Iterator = List<T>::Iterator;
+    Iterator m_iter {};
+    size_t idx {};
+
+    bool operator != (const HIVE__CXX_Enumerate_iterator& other) {
+        return m_iter != other.m_iter;
+    }
+    std::pair<T,size_t> operator *() {
+        return {idx, *m_iter};
+    }
+
+    HIVE__CXX_Enumerate_iterator &operator ++ () {
+        ++m_iter;
+        idx++;
+        return *this;
+    }
+
+    HIVE__CXX_Enumerate_iterator(const Iterator& iter, size_t index = 0) 
+    : m_iter(iter), idx(index) {}
+};
+
+
+template <typename T>
+struct Enumerate {
+    List<T>& data {};
+    size_t idx {};
+    Enumerate(List<T>& _dt): data(_dt), idx(0) {}
+
+    HIVE__CXX_Enumerate_iterator<T> begin() {
+        return {data.begin(), 0};
+    }
+
+    HIVE__CXX_Enumerate_iterator<T> end() {
+        return {data.end(), static_cast<size_t>(data.size())};
     }
 };
