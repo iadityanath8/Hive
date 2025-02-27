@@ -1,39 +1,47 @@
 #pragma once 
+
 #include <cstdio>
 #include <cstdlib>
 #include "hive.hpp"
+#include <utility>
 
 typedef int64_t index_type;
-
 
 template <typename T>
 class ListIterator {
 public:
-    using Valuetype = typename T::ValueType;
-    using reference = Valuetype&;
-    using pointer = Valuetype*;
+    using ValueType = typename T::ValueType;
+    using reference = ValueType&;
+    using pointer = ValueType*;
 
-    explicit ListIterator(pointer start): m_ptr(start) { }
+    explicit __attribute__((always_inline)) inline ListIterator(pointer __restrict__ start) 
+        : m_ptr(start) { }
 
-    ListIterator& operator++() {
+    __attribute__((always_inline)) inline ListIterator& operator++() {
         ++m_ptr;
         return *this;
     }
 
-    ListIterator operator++(int){
-        auto c = *this;
-        ++m_ptr;
-        return c;
+    __attribute__((always_inline)) inline ListIterator operator++(int) {
+        ListIterator tmp = *this;
+        ++(*this);
+        return tmp;
     }
 
-    reference operator*() {return *m_ptr;}
-    reference operator -> () {return m_ptr;}
+    __attribute__((always_inline)) inline reference operator*() const { return *m_ptr; }
+    
+    __attribute__((always_inline)) inline pointer operator->() const { return m_ptr; }
 
-    bool operator != (const ListIterator<T>& other) const { return m_ptr != other.m_ptr; }
-    bool operator == (const ListIterator<T>& other) const {return m_ptr == other.m_ptr; }
+    __attribute__((always_inline)) inline bool operator!=(const ListIterator<T>& other) const { 
+        return m_ptr != other.m_ptr; 
+    }
+
+    __attribute__((always_inline)) inline bool operator==(const ListIterator<T>& other) const { 
+        return m_ptr == other.m_ptr; 
+    }
 
 private:
-    pointer m_ptr;
+    pointer __restrict__ m_ptr;
 };
 
 
@@ -53,34 +61,37 @@ public:
 
     ~List();
     /** copy assignment */
-    void push(T _v);
+    inline void push(T _v);
     bool find(T _v);
-    index_type indexOf(T _v);
-    List<T> &operator=(const List<T> &other);
+    __attribute__((always_inline)) inline index_type indexOf(T _v);
+    __attribute__((always_inline)) inline List<T> &operator=(const List<T> &other);
     List<T> &operator=(List<T> &&other);
     bool operator==(const List<T> &other);
     void reserve(int _s);
-    index_type size(); // experimental i will intriduce a global len funtion to identify sz
-    T pop();
-    T &operator[](index_type index);
-    const T &operator[](index_type index) const;
+    
+    __attribute__((always_inline)) inline constexpr index_type size(); // experimental i will intriduce a global len funtion to identify sz
+    __attribute__((always_inline)) inline constexpr T pop();
+    __attribute__((always_inline)) inline T &operator[](index_type index);
+    __attribute__((always_inline)) inline const T &operator[](index_type index) const;
 
 
-    T *data();
-    iterator begin()
+    __attribute__((always_inline)) inline T *data();
+
+    __attribute__((always_inline)) inline const T *data() const;
+    
+    __attribute__((always_inline)) inline iterator begin()
     {
         return iterator(items);
     }
-    const T *data() const;
-    iterator end()
+    __attribute__((always_inline)) inline iterator end()
     {
         return iterator(items + sz);
     }
 
 private:
-    void extend();
-    T *items{};
     size_t capacity{};
+    inline void extend(size_t s = 0);
+    T *items{};
     index_type sz{};
 };
 
@@ -130,6 +141,12 @@ public:
     LinkedList ();
     LinkedList(std::initializer_list<T> init);
     ~LinkedList();
+
+    LinkedList(const LinkedList& other);
+    LinkedList(LinkedList&& other);
+    LinkedList& operator=(LinkedList&& other);
+
+    LinkedList& operator=(const LinkedList& other); 
     auto push(T item) -> void;
     auto pop() -> T;
     auto insert(T item,size_t pos) -> void;
@@ -155,10 +172,94 @@ public:
         Node* prev;
         Node* next;
         Node(T _d):data(_d),prev(nullptr),next(nullptr) { }
+        Node(T _d, Node* prev_,Node* next_):data(_d),prev(prev_), next(next_) {}
     };
 private:
     
     size_t sz {};
     Node* head;
-    Node* tail;
+    Node* tail;     
+    Node* allocate_node(const T& value, Node* prev, Node* next);
+    void clear();
 };
+
+
+/**** Static Containers */
+
+template <typename T> 
+class StatIterator {
+public:
+    using ValueType = typename T::ValueType;
+    using reference = ValueType&;
+    using pointer = ValueType*;
+
+    reference operator*() {
+        return *curr;
+    }
+
+    pointer operator->() {
+        return curr;
+    }
+
+    StatIterator& operator++() {
+        curr++;
+        return *this;
+    }
+
+    StatIterator operator++(int) {
+        auto t = *this;
+        curr++;
+        return t;
+    }
+
+    bool operator==(const StatIterator& other) const {
+        return other.curr == curr;
+    }
+
+    bool operator!=(const StatIterator& other) const {
+        return other.curr != curr;
+    }
+
+    explicit StatIterator(pointer a): curr(a) {}
+
+private:
+    pointer curr;
+};
+
+
+template<typename T, int N> 
+class StatArray {   // considering a fking name change later but as of now its just an implementation num 
+public:
+    using ValueType =  T;
+    using referece  =  ValueType&;
+    using pointer   =  ValueType*;
+    using iterator  =  StatIterator<StatArray<T,N>>;
+    
+    inline auto max_size() -> size_t;
+    inline auto back() -> T;
+    inline auto front() -> T;
+    
+    T& operator[](index_type index); 
+    const T& operator[](index_type index) const; 
+
+    iterator begin() {
+        return iterator(M_arr);
+    }
+
+    iterator end() {
+        return iterator(M_arr + M_size);
+    }
+
+private:
+    T M_arr[N] {};
+    size_t M_size {N};
+};
+
+
+
+/* ------------------------------------------- Iterator Tools i am thinking to make an another file for ir as i build more itertools ----------------------------------*/
+
+
+
+
+/***** TODO: Try to implement a modern and powerfull iterator just like rust please rust like using templates and vrey powerfull and fgaster then traditional 1990s iterator ok ok ok  */

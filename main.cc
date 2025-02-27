@@ -1,12 +1,10 @@
 #include "hive.hpp"
 
 
-
 int main() {
-    LinkedList a = {1,2,3};
-
-    for (int i : a) {
-        print(i);
-    }
+    const char* ch = "THis is me in here woow owoow";
+    
+        String a(ch);
+    
     return 0;
 }
