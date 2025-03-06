@@ -2,7 +2,7 @@
 #include <vector>
 #include <chrono>
 #include <atomic>
-#include "../hive.hpp"  
+#include "../include/hive.hpp"  
 
 constexpr size_t N = 10'000'0000;  
 

@@ -51,3 +51,15 @@ concept Comparable = requires(T a, T b) {
     { a < b } -> std::same_as<bool>;
     { a ==b } -> std::same_as<bool>;
 };
+
+
+template <typename T> 
+concept Iterable = requires(T t) { 
+    {t.begin()} -> std::same_as<typename T::iterator>;
+    {t.end()} -> std::same_as<typename T::iterator>;
+};
+
+
+// TODO: Implement hashable trait 
+// template <typename T> 
+// concept Hashable =

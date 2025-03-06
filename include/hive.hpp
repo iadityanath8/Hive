@@ -31,14 +31,13 @@
 #define INIT_LIST_CAPACITY 121
 #define INIT_VEC_SIZE 2
 
-#define CXX_GMCR_HIVE /// we'll see about naming convention and we will change the name in here  
-
 [[noreturn]] inline void panic(const char *msg__);
 
 /** will introduce small string optimization (SSO) soon for small and usable strings  */
 class String
 {
 public:
+    using iterator = List<char>::iterator;
     String();
     ~String();
     String(int s_);
@@ -66,7 +65,7 @@ public:
         }
     }
 
-    List<char>::iterator begin()
+    iterator begin()
     {
         if (is_sso)
         {
@@ -75,7 +74,7 @@ public:
         return List<char>::iterator(m_data.data());
     }
 
-    List<char>::iterator end()
+    iterator end()
     {
         if (is_sso)
         {
@@ -464,11 +463,15 @@ __attribute__((always_inline)) inline constexpr  T List<T>::pop()
 template <typename T>
 __attribute__((always_inline))inline T &List<T>::operator[](index_type index)
 {
+
+#ifdef HIVE_BOUND_CHECK
     // support for negative index
     if (index >= sz or (-index) >= (sz + 1))
     {
         panic("index out of bounds");
     }
+#endif
+
     if (index < 0)
     {
         return items[sz + index];
@@ -483,10 +486,16 @@ __attribute__((always_inline)) inline const T &List<T>::operator[](index_type in
      *  0
      * {1,2,3}
      * index = -1  -2 -3 */
+
+#ifdef HIVE_BOUND_CHECK   
+
     if (index >= sz or (-index) > (sz + 1))
     {
         panic("index out of bounds");
     }
+
+#endif 
+
     if (index < 0)
     {
         return items[sz + index];
@@ -640,10 +649,14 @@ void String::push(char ch_)
 
 char String::pop()
 {
+
+#ifdef HIVE_BOUND_CHECK
     if (m_data.size() == 0 or sso_index == 0)
     {
         panic("Cannot pop out from the String");
     }
+#endif
+
     if (is_sso)
     {
         auto t = sso_buffer[sso_index];
@@ -674,11 +687,13 @@ char &String::operator[](index_type index)
 {
     if (is_sso)
     {
+#ifdef HIVE_BOUND_CHECK
         auto cmp = (index < static_cast<index_type>(SSO_SIZE) and (-index + 1) < sso_index + 1); // TODO: check please if false
         if (!cmp)
         {
             panic("Index out of bound for the String");
         }
+#endif 
         index_type in = index < 0 ? sso_index + index : index;
         return sso_buffer[in];
     }
@@ -689,11 +704,15 @@ const char &String::operator[](index_type index) const
 {
     if (is_sso)
     {
+
+#ifdef HIVE_BOUND_CHECK
         auto cmp = (index < static_cast<index_type>(SSO_SIZE) and (-index + 1) < sso_index + 1); // TODO: check please of false
         if (!cmp)
         {
             panic("Index out of bound for the String");
         }
+#endif
+ 
         auto in = index < 0 ? sso_index + index : index;
         return sso_buffer[in];
     }
@@ -891,10 +910,13 @@ void LinkedList<T>::push(T item)
 template <typename T>
 auto LinkedList<T>::pop() -> T
 {
+
+#ifdef HIVE_BOUND_CHECK
     if (head == nullptr and tail == nullptr)
     {
         panic("Pop from an empty LinkedList");
     }
+#endif
 
     tail = tail->prev;
     auto temp = tail->next;
@@ -907,6 +929,8 @@ auto LinkedList<T>::pop() -> T
 template <typename T>
 auto LinkedList<T>::remove(size_t pos) -> void
 {
+
+#ifdef HIVE_BOUND_CHECK
     if (sz == 0)
     {
         panic("ERROR: cannot pop from an Empty Linked List");
@@ -915,6 +939,7 @@ auto LinkedList<T>::remove(size_t pos) -> void
     {
         panic("ERROR: cannot pop Invalid position");
     }
+#endif
 
     if (pos == 0)
     {
@@ -950,10 +975,14 @@ auto LinkedList<T>::remove(size_t pos) -> void
 template <typename T>
 auto LinkedList<T>::insert(T m_d, size_t idx) -> void
 {
+
+#ifdef HIVE_BOUND_CHECK
     if (idx >= sz + 1)
     {
         panic("ERROR: Cannot insert data this far");
     }
+#endif 
+
     if (idx == 0)
     {
         void *mem = malloc(sizeof(Node));
@@ -987,20 +1016,26 @@ auto LinkedList<T>::insert(T m_d, size_t idx) -> void
 template <typename T>
 auto LinkedList<T>::back() -> T
 {
+#ifdef HIVE_BOUND_CHECK
     if (tail == nullptr)
     {
         panic("Error: LinkedList empty cannot pop from the linkedlist");
     }
     return tail->data;
+#endif
 }
 
 template <typename T>
 auto LinkedList<T>::front() -> T
 {
+
+#ifdef HIVE_BOUND_CHECK
     if (head == nullptr)
     {
         panic("Error: LinkedList is empty cannot pop from the front");
     }
+#endif
+
     return head->data;
 }
 
@@ -1029,11 +1064,15 @@ auto LinkedList<T>::clear() -> void
 template <typename T, int N>
 auto StatArray<T, N>::operator[](index_type index) const -> const T &
 {
+
+#ifdef HIVE_BOUND_CHECK
     auto cmp = (index < static_cast<index_type>(M_size)) and (-index + 1 < M_size + 1);
     if (!cmp)
     {
         panic("ERROR: index out of bounds of StatArray");
     }
+#endif
+
     auto in = index < 0 ? index + M_size : index;
     return M_arr[in];
 }
@@ -1041,11 +1080,15 @@ auto StatArray<T, N>::operator[](index_type index) const -> const T &
 template <typename T, int N>
 auto StatArray<T, N>::operator[](index_type index) -> T &
 {
+
+#ifdef HIVE_BOUND_CHECK
     auto cmp = (index < static_cast<index_type>(M_size)) and (-index + 1 < M_size + 1);
     if (!cmp)
     {
         panic("ERROR: index out of bounds of StatArray");
     }
+#endif
+
     auto in = index < 0 ? index + M_size : index;
     return M_arr[in];
 }
@@ -1059,20 +1102,27 @@ auto StatArray<T, N>::max_size() -> size_t
 template <typename T, int N>
 auto StatArray<T, N>::back() -> T
 {
+
+#ifdef HIVE_BOUND_CHECK
     if (M_size == 0)
     {
         panic("ERROR: empty Array with no size");
     }
+#endif
+
     return M_arr[N - 1];
 }
 
 template <typename T, int N>
 auto StatArray<T, N>::front() -> T
 {
+
+#ifdef HIVE_BOUND_CHECK
     if (M_size == 0)
     {
         panic("ERROR: empty Array with no size");
     }
+#endif
     return M_arr[0];
 }
 

@@ -1,7 +1,10 @@
-// #include "hive.hpp"
-#include "gem_table.hpp"
+#include "./include/hive.hpp"
+// #include <iostream>
+// #include <vector>
+// #include <list>
+
+using namespace std;
 
 int main() {
-    print("hll");
     return 0;
 }
