@@ -4,7 +4,7 @@
 #include <atomic>
 #include "../hive.hpp"  
 
-constexpr size_t N = 10'000'000;  
+constexpr size_t N = 10'000'0000;  
 
 template <typename Func>
 double benchmark(Func f) {

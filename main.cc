@@ -1,10 +1,7 @@
-#include "hive.hpp"
-
+// #include "hive.hpp"
+#include "gem_table.hpp"
 
 int main() {
-    const char* ch = "THis is me in here woow owoow";
-    
-        String a(ch);
-    
+    print("hll");
     return 0;
 }

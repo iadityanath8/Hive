@@ -61,10 +61,10 @@ public:
 
     ~List();
     /** copy assignment */
-    inline void push(T _v);
+    inline void push(T _v); // only request compiler to do this thing in here 
     bool find(T _v);
     __attribute__((always_inline)) inline index_type indexOf(T _v);
-    __attribute__((always_inline)) inline List<T> &operator=(const List<T> &other);
+    List<T> &operator=(const List<T> &other);
     List<T> &operator=(List<T> &&other);
     bool operator==(const List<T> &other);
     void reserve(int _s);
@@ -117,11 +117,11 @@ public:
         return c;
     }
 
-    reference operator*() {
+    __attribute__((always_inline)) inline reference operator*() {
         return m_node->data;
     }
 
-    pointer operator->() {
+    __attribute__((always_inline)) inline pointer operator->() {
         return &(m_node->data);
     }
 
@@ -163,9 +163,6 @@ public:
     iterator end() {
         return iterator(nullptr);
     }
-
-    /** debuggable */
-    auto print__();
 
     struct Node {
         T data;
@@ -235,18 +232,18 @@ public:
     using pointer   =  ValueType*;
     using iterator  =  StatIterator<StatArray<T,N>>;
     
-    inline auto max_size() -> size_t;
+    inline auto max_size() -> size_t;   // 100% can be inlined by the compiler as it is 100% guranteed that compiler accepts the request 
     inline auto back() -> T;
     inline auto front() -> T;
     
     T& operator[](index_type index); 
     const T& operator[](index_type index) const; 
 
-    iterator begin() {
+    inline iterator begin() {
         return iterator(M_arr);
     }
 
-    iterator end() {
+    inline iterator end() {
         return iterator(M_arr + M_size);
     }
 

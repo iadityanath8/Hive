@@ -31,6 +31,8 @@
 #define INIT_LIST_CAPACITY 121
 #define INIT_VEC_SIZE 2
 
+#define CXX_GMCR_HIVE /// we'll see about naming convention and we will change the name in here  
+
 [[noreturn]] inline void panic(const char *msg__);
 
 /** will introduce small string optimization (SSO) soon for small and usable strings  */
@@ -95,6 +97,10 @@ private:
 void hive_print1(int __a)
 {
     printf("%d", __a);
+}
+
+void hive_print1(unsigned long long __a) {
+    printf("%lld", __a);
 }
 
 void hive_print1(char _ch)
@@ -289,15 +295,15 @@ List<T>::List(std::initializer_list<T> init)
 }
 
 template <typename T>
-inline void List<T>::extend(size_t s)
+inline void List<T>::extend(size_t s) // request for being inline 
 {
     if (s == 0)
         s = capacity * 2;
 
     int new_capacity = s;
     T *new_items = (T *)realloc(items, new_capacity * sizeof(T)); // what the hell ??
-    // if (new_items == nullptr)
-    //     panic("Failed to allocate the memory");
+    if (new_items == nullptr)
+        panic("Failed to allocate the memory");
     capacity = new_capacity;
     items = new_items;
 }
@@ -351,7 +357,6 @@ List<T>::~List()
             items[i].~T();
         }
     }
-    print("QOOOQOOQO", items == nullptr);
     free(items);
     sz = 0;
     capacity = 0;
@@ -414,7 +419,7 @@ inline index_type List<T>::indexOf(T _v)
 template <typename T>
 void List<T>::reserve(int _s)
 {
-    if (_s <= capacity)
+    if (_s+1 <= capacity)  // TODO: LOOK here
         return;
 
     T *new_items = (T *)malloc(sizeof(T) * _s);
@@ -997,17 +1002,6 @@ auto LinkedList<T>::front() -> T
         panic("Error: LinkedList is empty cannot pop from the front");
     }
     return head->data;
-}
-
-template <typename T>
-auto LinkedList<T>::print__()
-{
-    auto temp = head;
-    while (temp != nullptr)
-    {
-        print(temp->data);
-        temp = temp->next;
-    }
 }
 
 template <typename T>
