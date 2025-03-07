@@ -3,8 +3,12 @@
 // #include <vector>
 // #include <list>
 
-using namespace std;
+
+void pa(hive::String&& mv) {
+    hive::hive_print1(mv);
+}
 
 int main() {
+
     return 0;
 }

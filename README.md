@@ -8,6 +8,9 @@ Hive is a custom C++ standard library alternative designed to provide a more Pyt
 - **List Class**: A dynamic array-like container with efficient resizing and element access.
 - **Generic Print Function**: A Python-like `print` function that supports automatic spacing between arguments.
 - **Format Function**: A lightweight, flexible alternative to `printf` that works with `const char*`.
+- **Hive Ranges**: A modern approach to iterators, inspired by C++20 ranges but optimized for performance and flexibility.
+- **Concepts & Traits for Hash and Iterators**: Provides compile-time constraints for custom hash functions and iterators, ensuring type safety and efficiency.
+- **`hive::printf` Function**: A formatted output function that allows easy string formatting, similar to `printf`, but more flexible.
 
 ## Goals
 
@@ -51,10 +54,35 @@ String formatted = format("The answer is {}", 42);
 print(formatted);
 ```
 
+### Hive Ranges
+```cpp
+List<int> numbers = {1, 2, 3, 4, 5};
+for (auto x : numbers.range()) {
+    print(x);
+}
+```
+
+### Concepts & Traits for Hash and Iterators
+```cpp
+template <Hashable T>
+struct MyHash {
+    size_t operator()(const T& value) const {
+        return custom_hash(value);
+    }
+};
+```
+
+### Hive `printf`
+```cpp
+hive::printf("The result is {}", 23);
+```
+
 ## Future Work
 - Implementing additional data structures (e.g., `Map`, `Set`).
 - Expanding the `format` function for more advanced formatting.
 - Creating an optimized memory allocator.
+- Enhancing Hive Ranges for more complex transformations.
+- Further improvements to concepts and traits for hashing and iterators.
 
 ## Contribution
 Contributions are welcome! Feel free to submit issues, feature requests, or pull requests to improve Hive.

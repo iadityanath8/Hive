@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include "hive.hpp"
 
+namespace hive {
+
 template <typename T>
 struct make_rvalue
 {
@@ -63,3 +65,5 @@ concept Iterable = requires(T t) {
 // TODO: Implement hashable trait 
 // template <typename T> 
 // concept Hashable =
+
+}

@@ -3,7 +3,7 @@
 // #include "hive.hpp"
 #include "list.hpp"
 
-
+namespace hive {
 template <typename Key, typename Value>
 class GemMap{
     GemMap(Iterable it);   
@@ -18,3 +18,4 @@ private:
     };
     List<Bucket> buckets {};
 };
+}

@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include "hive.hpp"
 
+
+namespace hive {
+
 unsigned long CXX_HASH_UTILITY(String a, int mod = 20)
 {
     unsigned long hash = 0xa5c;
@@ -62,7 +65,7 @@ constexpr uint64_t hash_float(double x) {
     return hash_int(bits);  // Use integer hash
 }
 
-
+}
 
 
 // #include <immintrin.h>

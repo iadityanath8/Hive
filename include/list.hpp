@@ -7,6 +7,9 @@
 
 typedef int64_t index_type;
 
+
+namespace hive {
+
 template <typename T>
 class ListIterator {
 public:
@@ -252,6 +255,7 @@ private:
     size_t M_size {N};
 };
 
+}
 
 
 /* ------------------------------------------- Iterator Tools i am thinking to make an another file for ir as i build more itertools ----------------------------------*/
