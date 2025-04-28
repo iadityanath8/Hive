@@ -1,6 +1,7 @@
 #pragma once 
 #include <concepts>
 #include <cstdlib>
+#include <tuple>
 #include "hive.hpp"
 
 namespace hive {
@@ -24,6 +25,12 @@ struct has_repr<T, decltype((void)make_rvalue<T>::instance().repr(), void())>
 {
     static constexpr bool value = true;
 };
+
+template <typename T>
+constexpr bool is_tuple_v = false;
+
+template <typename... Args>
+constexpr bool is_tuple_v<std::tuple<Args...>> = true;
 
 
 /** specialized concepts soon we will try to add more traits in here normally like this in here */
@@ -54,11 +61,10 @@ concept Comparable = requires(T a, T b) {
     { a ==b } -> std::same_as<bool>;
 };
 
-
-template <typename T> 
-concept Iterable = requires(T t) { 
-    {t.begin()} -> std::same_as<typename T::iterator>;
-    {t.end()} -> std::same_as<typename T::iterator>;
+template<typename T>
+concept Iterable = requires(T t) {
+    { t.begin() } -> std::same_as<typename std::remove_reference_t<T>::iterator>;
+    { t.end() } -> std::same_as<typename std::remove_reference_t<T>::iterator>;
 };
 
 

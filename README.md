@@ -9,6 +9,8 @@ Hive is a custom C++ standard library alternative designed to provide a more Pyt
 - **Generic Print Function**: A Python-like `print` function that supports automatic spacing between arguments.
 - **Format Function**: A lightweight, flexible alternative to `printf` that works with `const char*`.
 - **Hive Ranges**: A modern approach to iterators, inspired by C++20 ranges but optimized for performance and flexibility.
+- **Hive Enumerate***: A pyhton like enumerate iterator that gives the index and the element at the same time just like python
+- **Hive Zip**: A python like Zip iterator utility which can Zip nth iterables
 - **Concepts & Traits for Hash and Iterators**: Provides compile-time constraints for custom hash functions and iterators, ensuring type safety and efficiency.
 - **`hive::printf` Function**: A formatted output function that allows easy string formatting, similar to `printf`, but more flexible.
 

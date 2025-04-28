@@ -158,6 +158,7 @@ namespace hive
         fprintf(stderr, "PANIC: %s\n", msg__);
         abort();
     }
+
     /** lots of bug fixing in here ok  */
     void print_up_to(const char *str, int num_chars)
     {
@@ -170,7 +171,6 @@ namespace hive
         print_up_to(v.data(), v.size());
     }
 
-    // soon we will try to introduce the concepts so that we can use the specially compile time messages in here
     template <Printable T>
     void hive_print1(const T &__v)
     {
@@ -359,6 +359,14 @@ namespace hive
         }
     }
 
+    template <typename T>
+    template <Iterable ia>
+    List<T>::List(ia&& iter) {
+        for (auto i : iter) {
+            push(i);
+        }
+    }
+    
     template <typename T>
     inline void List<T>::extend(size_t s) // request for being inline
     {
@@ -1201,12 +1209,17 @@ namespace hive
         return M_arr[0];
     }
 
+    template <typename T> /** TODO: use concept to generalize more **/
     struct HIVE__CXX_Range_iterator
     {
-        int s;
-        int st;
-        int ed;
-        explicit HIVE__CXX_Range_iterator(int s_, int st_, int ed_) : s(s_), st(st_), ed(ed_) {}
+        using ValueType = typename T::ValueType;
+        using referece =  ValueType&;
+        using pointer  = ValueType*;
+
+        ValueType s;
+        ValueType st;
+        ValueType ed;
+        explicit HIVE__CXX_Range_iterator(ValueType s_,ValueType st_,ValueType ed_) : s(s_), st(st_), ed(ed_) {}
 
         HIVE__CXX_Range_iterator &operator++()
         {
@@ -1225,32 +1238,38 @@ namespace hive
         {
             return (st > 0) ? (s < other.s) : (s > other.s);
         }
-        int operator*() const { return s; }
+        ValueType operator*() const { return s; }
     };
 
+    template <typename T>  /** TODO: use Concept to genralize more **/
     struct Range
     {
-        int current;
-        int step;
-        int en;
-        Range(int _C) : current(0), step(1), en(_C) {}
-        Range(int s, int se, int ee) : current(s), step(se), en(ee) {}
+        using ValueType = T;
+        using iterator = HIVE__CXX_Range_iterator<Range<T>>;
 
-        HIVE__CXX_Range_iterator begin()
+        T current;
+        T step;
+        T en;        
+        Range(T _C) : current(0), step(1), en(_C) {}
+        Range(T s, T ee, T se) : current(s), step(se), en(ee) {}
+        Range(T s, T ee): current(s), en(ee), step(1) {}
+
+        iterator begin()
         {
-            return HIVE__CXX_Range_iterator(current, step, en);
+            return iterator(current, step, en);
         }
 
-        HIVE__CXX_Range_iterator end()
+        iterator end()
         {
-            return HIVE__CXX_Range_iterator(en, step, en);
+            return iterator(en, step, en);
         }
     };
 
     /**   Can work with any custom iterable datatypes which has begin and end functions and with proper operator it automatically deduces the types of underline container and its
      *    iterators !!!  i got it finally yeah yeah yeah
      */
-    template <typename Iterator>
+    
+    template <class Iterator>
     struct HIVE__CXX_Enumerate_iterator
     {
         Iterator m_iter{};
@@ -1277,12 +1296,10 @@ namespace hive
             : m_iter(iter), idx(index) {}
     };
 
-    /*** OK OK OK  */
-    template <typename Container>
+    template <Iterable Container>
     struct Enumerate
     {
         using Iterator = decltype(make_rvalue<Container &>::instance().begin());
-
         Container data;
 
         HIVE__CXX_Enumerate_iterator<Iterator> begin()
@@ -1296,4 +1313,67 @@ namespace hive
         }
     };
 
+
+    template <class Iterator1, class Iterator2> 
+    struct ZipIterator {
+        Iterator1 iter1;
+        Iterator2 iter2;
+
+        using ValueType1 = decltype(*iter1);
+        using ValueType2 = decltype(*iter2);
+
+        auto operator*() {
+            if constexpr (is_tuple_v<ValueType2>) {
+                return std::tuple_cat(std::make_tuple(*iter1), *iter2);
+            } else {
+                return std::tuple_cat(std::make_tuple(*iter1), std::make_tuple(*iter2));
+            }
+        }
+
+        ZipIterator &operator++() {
+            ++iter1;
+            ++iter2;
+            return *this;
+        }
+        
+        bool operator!=(const ZipIterator &other)
+        {
+            return iter1 != other.iter1 and iter2!= other.iter2; 
+        }
+    };
+
+
+    // takes 2 container and returns a pair of values of these 2 containers 
+    template <Iterable Container1, Iterable Container2>
+    struct Zip {
+        Container1 m_d1;
+        Container2 m_d2;
+
+        Zip(Container1 c1, Container2 c2): m_d1(c1), m_d2(c2) {
+
+        }
+
+        using Iterator1 = decltype(make_rvalue<Container1 &>::instance().begin());
+        using Iterator2 = decltype(make_rvalue<Container2 &>::instance().begin());
+        using iterator  = ZipIterator<Iterator1, Iterator2>;
+
+        iterator begin() {
+            return {m_d1.begin(), m_d2.begin()};
+        }
+
+        iterator end () {
+            return {m_d1.end(), m_d2.end()};
+        }
+    };
+
+    template <Iterable A, Iterable B>
+    auto zipn(A&& a, B&& b) {
+        return Zip((A&&)a, (B&&)b);
+    }
+
+    template <Iterable A, Iterable B, Iterable... Rest>
+    auto zipn(A&& a, B&& b, Rest&&... rest) {
+        return Zip((A&&)a, zipn((B&&)b, (Rest&&)rest...));
+    }
+    
 }

@@ -3,10 +3,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include "hive.hpp"
+#include "hive_traits.hpp"
 #include <utility>
 
 typedef int64_t index_type;
-
 
 namespace hive {
 
@@ -62,9 +62,12 @@ public:
     List(const List<T> &other);
     List(List<T> &&other);
 
+    /** !! experimental !! **/
+    template <Iterable i>
+    List(i&& iter);
     ~List();
-    /** copy assignment */
-    inline void push(T _v); // only request compiler to do this thing in here 
+
+    inline void push(T _v); 
     bool find(T _v);
     __attribute__((always_inline)) inline index_type indexOf(T _v);
     List<T> &operator=(const List<T> &other);
@@ -98,6 +101,17 @@ private:
     index_type sz{};
 };
 
+/***
+ *                 |   
+ *      int* a    [0,0,0,0,0,0,0,0,0,0,0,0]
+ *              sz =0
+ *              cap = 15
+ * 
+ */ 
+
+/** CTAD type deduction shenanigans**/
+template<Iterable iter>
+List(iter&&) -> List<typename iter::ValueType>;
 
 template <typename T>
 class LinkedListIterator {

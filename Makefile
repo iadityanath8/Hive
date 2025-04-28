@@ -9,7 +9,7 @@ TARGET = main
 SRC = main.cc
 # LINK = hive.cpp
 build:
-	$(CXX) $(VER) $(CXXFLAGS) -o $(TARGET) $(SRC) 
+	$(CXX) $(VER) $(CXXFLAGS) -o $(TARGET) $(SRC) && ./$(TARGET)
 
 run:
 	./$(TARGET)
