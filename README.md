@@ -1,4 +1,9 @@
+
+# Deprecated - Due to some C++ issue regarding memory management this library  is deprecated 
+## soon the replacement library will be in progress SAYONARA
+
 # Hive Library
+
 
 Hive is a custom C++ standard library alternative designed to provide a more Python-like experience while maintaining high performance and flexibility. It aims to replace parts of the existing C++ standard library with a fresh, modern, and lightweight approach.
 
